@@ -1,0 +1,12 @@
+pandas
+numpy
+scikit-learn
+matplotlib
+streamlit
+joblib
+nltk
+sentence-transformers
+faiss-cpu
+python-dotenv
+requests
+beautifulsoup4
