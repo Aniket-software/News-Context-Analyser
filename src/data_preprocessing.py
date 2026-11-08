@@ -1,45 +1,53 @@
+
 import pandas as pd
 import re
+import os
 
 def clean_text(text):
-
     text = str(text)
-
-    # Convert text to lowercase
     text = text.lower()
-
-    # Remove URLs
     text = re.sub(r"http\S+|www\S+", "", text)
-
-    # Remove special characters
     text = re.sub(r"[^a-zA-Z\s]", "", text)
-
-    # Remove extra spaces
     text = re.sub(r"\s+", " ", text).strip()
-
     return text
 
 
-# Load training dataset
-df = pd.read_csv("data/raw/train.tsv", sep="\t")
+def preprocess_dataset(input_path, output_path):
 
-# Combine title and article text
-df["content"] = df["title"] + " " + df["text"]
+    df = pd.read_csv(input_path, sep="\t")
 
-# Clean combined text
-df["cleaned_content"] = df["content"].apply(clean_text)
+    df = df.dropna(subset=["title", "text", "label"])
 
-# Save processed dataset
-df[["cleaned_content", "label"]].to_csv(
-    "data/processed/train_cleaned.csv",
-    index=False
-)
+    df["content"] = df["title"] + " " + df["text"]
 
-print("Preprocessing completed!")
-print("Dataset shape:", df.shape)
+    df["cleaned_content"] = df["content"].apply(clean_text)
 
-print("\nOriginal text:")
-print(df["content"].iloc[0][:300])
+    df = df[df["cleaned_content"].str.strip() != ""]
 
-print("\nCleaned text:")
-print(df["cleaned_content"].iloc[0][:300])
+    os.makedirs(os.path.dirname(output_path), exist_ok=True)
+
+    df[["cleaned_content", "label"]].to_csv(
+        output_path,
+        index=False
+    )
+
+    print("Preprocessing completed:", output_path)
+    print("Dataset shape:", df.shape)
+
+
+if __name__ == "__main__":
+
+    preprocess_dataset(
+        "data/raw/train.tsv",
+        "data/processed/train_cleaned.csv"
+    )
+
+    preprocess_dataset(
+        "data/raw/validation.tsv",
+        "data/processed/validation_cleaned.csv"
+    )
+
+    preprocess_dataset(
+        "data/raw/test.tsv",
+        "data/processed/test_cleaned.csv"
+    )
