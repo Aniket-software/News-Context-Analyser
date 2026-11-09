@@ -1,8 +1,6 @@
 
 import pandas as pd
 import faiss
-import numpy as np
-
 from sentence_transformers import SentenceTransformer
 
 
@@ -10,33 +8,32 @@ class EvidenceRetriever:
 
     def __init__(self):
 
-        # Load article dataset
         self.df = pd.read_csv(
             "data/processed/train_cleaned.csv"
         )
 
-        # Load embedding model
+        self.original_df = pd.read_csv(
+            "data/raw/train.tsv",
+            sep="\t"
+        )
+
         self.model = SentenceTransformer(
             "sentence-transformers/all-MiniLM-L6-v2"
         )
 
-        # Load FAISS index
         self.index = faiss.read_index(
             "models/news_faiss.index"
         )
 
     def search(self, query, top_k=5):
 
-        # Generate query embedding
         query_embedding = self.model.encode(
             [query],
             convert_to_numpy=True
         ).astype("float32")
 
-        # Normalize embedding
         faiss.normalize_L2(query_embedding)
 
-        # Search FAISS
         scores, indices = self.index.search(
             query_embedding,
             top_k
@@ -49,29 +46,36 @@ class EvidenceRetriever:
             if idx == -1:
                 continue
 
+            cleaned_row = self.df.iloc[idx]
+
+            source_index = int(
+                cleaned_row["source_index"]
+            )
+
+            original_row = self.original_df.iloc[
+                source_index
+            ]
+
+            title = str(original_row["title"])
+            original_text = str(original_row["text"])
+
+            # Preserve original numbers and punctuation
+            full_article = title + "\n\n" + original_text
+
             results.append({
-                "article": self.df.iloc[idx]["cleaned_content"],
+
+                "title": title,
+
+                "date": str(original_row["date"]),
+
+                "subject": str(original_row["subject"]),
+
+                "article": full_article,
+
                 "similarity": float(score),
-                "label": int(self.df.iloc[idx]["label"])
+
+                "label": int(cleaned_row["label"])
+
             })
 
         return results
-
-
-if __name__ == "__main__":
-
-    retriever = EvidenceRetriever()
-
-    query = "The government increased fuel prices"
-
-    results = retriever.search(query, top_k=5)
-
-    print("\nRetrieved Evidence:\n")
-
-    for i, result in enumerate(results, start=1):
-
-        print(f"Result {i}")
-        print("Similarity:", round(result["similarity"], 4))
-        print("Dataset Label:", result["label"])
-        print("Article:", result["article"][:300])
-        print("-" * 60)

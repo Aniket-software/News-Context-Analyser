@@ -3,6 +3,7 @@ import pandas as pd
 import re
 import os
 
+
 def clean_text(text):
     text = str(text)
     text = text.lower()
@@ -16,6 +17,9 @@ def preprocess_dataset(input_path, output_path):
 
     df = pd.read_csv(input_path, sep="\t")
 
+    # Preserve original row position before filtering
+    df["source_index"] = df.index
+
     df = df.dropna(subset=["title", "text", "label"])
 
     df["content"] = df["title"] + " " + df["text"]
@@ -26,7 +30,9 @@ def preprocess_dataset(input_path, output_path):
 
     os.makedirs(os.path.dirname(output_path), exist_ok=True)
 
-    df[["cleaned_content", "label"]].to_csv(
+    df[
+        ["source_index", "cleaned_content", "label"]
+    ].to_csv(
         output_path,
         index=False
     )

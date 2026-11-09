@@ -58,10 +58,25 @@ class ClaimAnalyzer:
         }
 
         for item in analyzed_evidence:
-
             stance_summary[item["stance"]] += 1
 
-        # 5. Prepare final analysis
+        # 5. Generate overall evidence verdict
+        entailment = stance_summary["entailment"]
+        contradiction = stance_summary["contradiction"]
+
+        if entailment >= 3 and contradiction == 0:
+            overall_verdict = "Supported"
+
+        elif contradiction >= 3 and entailment == 0:
+            overall_verdict = "Contradicted"
+
+        elif entailment > 0 and contradiction > 0:
+            overall_verdict = "Partially Supported"
+
+        else:
+            overall_verdict = "Insufficient Evidence"
+
+        # 6. Prepare final analysis
         return {
             "claim": claim,
 
@@ -75,7 +90,9 @@ class ClaimAnalyzer:
 
             "total_evidence": len(analyzed_evidence),
 
-            "stance_summary": stance_summary
+            "stance_summary": stance_summary,
+
+            "overall_verdict": overall_verdict
         }
 
 
@@ -108,12 +125,16 @@ if __name__ == "__main__":
         result["total_evidence"]
     )
 
+    print(
+        "Overall Evidence Verdict:",
+        result["overall_verdict"]
+    )
+
     # Overall evidence summary
     print("\nOVERALL EVIDENCE SUMMARY")
     print("-" * 40)
 
     for stance, count in result["stance_summary"].items():
-
         print(f"{stance}: {count}")
 
     # Individual evidence analysis
@@ -145,7 +166,6 @@ if __name__ == "__main__":
         print("NLI Scores:")
 
         for stance, score in item["nli_scores"].items():
-
             print(
                 f"  {stance}: {score * 100:.2f}%"
             )
